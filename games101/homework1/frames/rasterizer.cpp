@@ -135,7 +135,7 @@ void rst::rasterizer::draw_colorLine(Eigen::Vector3f begin, Eigen::Vector3f end,
     auto x2 = end.x();
     auto y2 = end.y();
 
-    Eigen::Vector3f line_color = {R, G, B};
+    Eigen::Vector3f line_color = {B, G, R};
 
     int x,y,dx,dy,dx1,dy1,px,py,xe,ye,i;
 
@@ -266,7 +266,7 @@ void rst::rasterizer::draw(rst::pos_buf_id pos_buffer, rst::ind_buf_id ind_buffe
             vert.x() = 0.5*width*(vert.x()+1.0);
             vert.y() = 0.5*height*(vert.y()+1.0);
             // Note by Gon laze:
-            // TODO: why?
+            // ? why? probably a mistake: f1 should be (50-0.1)/2 (same to f2)
             vert.z() = vert.z() * f1 + f2;
         }
 

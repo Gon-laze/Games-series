@@ -43,7 +43,7 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
 }
 
 // added by Gon laze
-// a func that can let the
+// a func that can let the model rotates around any axis
 Eigen::Matrix4f get_rotation(Vector3f axis, float angle)
 {
     angle *= (MY_PI/180.0);
