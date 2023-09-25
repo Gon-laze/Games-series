@@ -10,6 +10,7 @@
 #include <math.h>
 
 
+
 rst::pos_buf_id rst::rasterizer::load_positions(const std::vector<Eigen::Vector3f> &positions)
 {
     auto id = get_next_id();
@@ -40,34 +41,42 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static float insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
-    static const int superSample_width =    2; 
-    static const int superSample_size =     superSample_width * superSample_width; 
-    static const float superSample_Wmeta =  1.0 / superSample_width;
-    static const float superSample_Smeta =  1.0 / superSample_size;
-    float ans = 0.0;
+
+    // // float ans = 0.0;
     // use cross product ans' zVal to judge --by Gon laze
     float cross_Z[3];
     Vector2f pVec[3];
-    for (int u = 0; u < superSample_size; u++)
-    {
-        auto tx = x + (u % superSample_size)*superSample_Wmeta;
-        auto ty = y + (u / superSample_size)*superSample_Wmeta;
+    // // for (int u = 0; u < rst::superSample_size; u++)
+    // // {
+    // //     auto tx = x + (u % rst::superSample_size)*rst::superSample_Wmeta;
+    // //     auto ty = y + (u / rst::superSample_size)*rst::superSample_Wmeta;
+    // //     for (int i = 0; i < 3; i++)
+    // //     {
+    // //         pVec[i].x() = tx - _v[i].x();
+    // //         pVec[i].y() = ty - _v[i].y();
+    // //     }
+    // //     for (int i = 0; i < 3; i++)
+    // //         cross_Z[i] = (pVec[(i+1)%3].x() * pVec[(i+2)%3].y()) - (pVec[(i+1)%3].y() * pVec[(i+2)%3].x());
+
+    // //     if (cross_Z[0] >=0)     ans += (cross_Z[1]>=0) && (cross_Z[2]>=0) ? rst::superSample_Smeta : 0.0;
+    // //     else                    ans += (cross_Z[1]<=0) && (cross_Z[2]<=0) ? rst::superSample_Smeta : 0.0;
+    // // }
+
+    // // return ans;
         for (int i = 0; i < 3; i++)
         {
-            pVec[i].x() = tx - _v[i].x();
-            pVec[i].y() = ty - _v[i].y();
+            pVec[i].x() = x - _v[i].x();
+            pVec[i].y() = y - _v[i].y();
         }
         for (int i = 0; i < 3; i++)
             cross_Z[i] = (pVec[(i+1)%3].x() * pVec[(i+2)%3].y()) - (pVec[(i+1)%3].y() * pVec[(i+2)%3].x());
 
-        if (cross_Z[0] >=0)     ans += (cross_Z[1]>=0) && (cross_Z[2]>=0) ? superSample_Smeta : 0.0;
-        else                    ans += (cross_Z[1]<=0) && (cross_Z[2]<=0) ? superSample_Smeta : 0.0;
-    }
-
-    return ans;
+        if (cross_Z[0] >=0)     return (cross_Z[1]>=0) && (cross_Z[2]>=0);
+        else                    return (cross_Z[1]<=0) && (cross_Z[2]<=0);
+        
 }
 
 /*
@@ -109,11 +118,11 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         for (auto& vec : v) {
             vec /= vec.w();
 
-            //add by Gon laze
-            {std::cout << vec << std::endl << "``````````\n";}
+        //     // add by Gon laze
+        //     // {std::cout << vec << std::endl << "``````````\n";}
         }
-        //add by Gon laze
-        {std::cout << std::endl << "##########\n";}
+        // // add by Gon laze
+        // // {std::cout << std::endl << "##########\n";}
         //Viewport transformation
         for (auto & vert : v)
         {
@@ -138,6 +147,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         t.setColor(2, col_z[0], col_z[1], col_z[2]);
 
         rasterize_triangle(t);
+        
     }
 }
 
@@ -148,44 +158,57 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     // TODO : Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
 
-    float x_min = floor(std::min(std::min(v[0].x(), v[1].x()), v[2].x())) + 0.5;
-    float x_max = floor(std::max(std::max(v[0].x(), v[1].x()), v[2].x())) + 0.5;
-    float y_min = floor(std::min(std::min(v[0].y(), v[1].y()), v[2].y())) + 0.5;
-    float y_max = floor(std::max(std::max(v[0].y(), v[1].y()), v[2].y())) + 0.5;
+    float x_min = floor(std::min(std::min(v[0].x(), v[1].x()), v[2].x()));
+    float x_max = floor(std::max(std::max(v[0].x(), v[1].x()), v[2].x()));
+    float y_min = floor(std::min(std::min(v[0].y(), v[1].y()), v[2].y()));
+    float y_max = floor(std::max(std::max(v[0].y(), v[1].y()), v[2].y()));
 
-    for (auto y = y_min; y <= y_max; y++)
+    //    // std::cout << "x: " << x_min << '\t' << x_max << std::endl;
+    //    // std::cout << "y: " << y_min << '\t' << y_max << std::endl;
+    //    // std::cout << t.v[0] << std::endl;
+    //    // std::cout << t.v[1] << std::endl;
+    //    // std::cout << t.v[2] << std::endl;
+    for (auto _y_ = y_min; _y_ <= y_max; _y_++)
     {
-        for (auto x = x_min; x <= x_max; x++)
+        for (auto _x_ = x_min; _x_ <= x_max; _x_++)
         {
-            float superSample_level;
-            if ((superSample_level = insideTriangle(floor(x), floor(y), t.v)) == 0.0)
-                continue;
-            // ! TODO: This bounding box could be so huge! Try other ways to boost.
-            
-            // If so, use the following code to get the interpolated z value.
-            auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-            /*
-                This part may looks confusing, but actually the code is trying to express that in the final result 
-                (refers to the model that has been perspective-orthogonal transformed, but still retains the z-va-
-                lue and has not yet been projected in 2D), alpha /= v[0].w() (because we didn't divide by w earli-
-                er in our calculations to make it homogeneous).        
-                more info: https://zhuanlan.zhihu.com/p/448575965
-                ? still confused. What is the w_reciprocal for(should be a const val(1) when P is in the triangle)? 
-                ? Perhaps a general solution for points no matter if they are in traingle?
-                TODO: try to comprehend.
-                TODO: try to simplifed this.
-            */
-            float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-            float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-            z_interpolated *= w_reciprocal;
-
-            // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-            auto pIndex = rst::rasterizer::get_index(x, y);
-            if (depth_buf[pIndex] > z_interpolated)
+            for (auto u = 0; u < rst::superSample_size; u++)
             {
-                depth_buf[pIndex] = z_interpolated;
-                set_pixel({floor(x),floor(y),z_interpolated}, t.getColor() / superSample_level);
+                auto x = _x_ + (u % superSample_width) * superSample_Wmeta;
+                auto y = _y_ + (u / superSample_width) * superSample_Wmeta;
+                if (insideTriangle(x, y, t.v) == false)
+                    continue;
+                //  // std::cout << x << '\t' << y <<'\t' << superSample_level << std::endl;
+                // ! TODO: This bounding box could be so huge! Try other ways to boost.
+                
+                // If so, use the following code to get the interpolated z value.
+                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+                /*
+                    This part may looks confusing, but actually the code is trying to express that in the final result 
+                    (refers to the model that has been perspective-orthogonal transformed, but still retains the z-va-
+                    lue and has not yet been projected in 2D), alpha /= v[0].w() (because we didn't divide by w earli-
+                    er in our calculations to make it homogeneous).        
+                    more info: https://zhuanlan.zhihu.com/p/448575965
+                    ? still confused. What is the w_reciprocal for(should be a const val(1) when P is in the triangle)? 
+                    ? Perhaps a general solution for points no matter if they are in traingle?
+                    TODO: try to comprehend.
+                    TODO: try to simplifed this.
+                */
+                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                z_interpolated *= w_reciprocal;
+
+                // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+                auto pIndex = rst::rasterizer::get_index(x, y);
+                if (depth_buf[u][pIndex] > z_interpolated)
+                {
+                    depth_buf[u][pIndex] = z_interpolated;
+                    
+                    // ? Try some color mixing (is this correct?)
+                    set_pixel({floor(x),floor(y),z_interpolated}, frame_buf[pIndex] + t.getColor() * rst::superSample_Smeta);
+                }                
             }
+
         }
     }
 }
@@ -213,14 +236,20 @@ void rst::rasterizer::clear(rst::Buffers buff)
     }
     if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth)
     {
-        std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
+        // edit by Gon laze: superSample: create depthBuf for each sample
+        for (auto & db : depth_buf)
+            std::fill(db.begin(), db.end(), std::numeric_limits<float>::infinity());
+        // std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
     }
 }
 
 rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
 {
     frame_buf.resize(w * h);
-    depth_buf.resize(w * h);
+    // edit by Gon laze: superSample: create depthBuf for each sample
+    for (auto & db : depth_buf)
+        db.resize(w * h);
+    // depth_buf.resize(w * h);
 }
 
 int rst::rasterizer::get_index(int x, int y)
