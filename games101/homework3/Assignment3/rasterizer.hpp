@@ -15,6 +15,12 @@ using namespace Eigen;
 
 namespace rst
 {
+    // superSample
+    const int superSample_width =    1; 
+    const int superSample_size =     superSample_width * superSample_width; 
+    const float superSample_Wmeta =  1.0 / superSample_width;
+    const float superSample_Smeta =  1.0 / superSample_size;
+
     enum class Buffers
     {
         Color = 1,
@@ -109,7 +115,11 @@ namespace rst
         std::function<Eigen::Vector3f(vertex_shader_payload)> vertex_shader;
 
         std::vector<Eigen::Vector3f> frame_buf;
-        std::vector<float> depth_buf;
+
+        // edit by Gon laze: superSample: create depthBuf for each sample
+        std::vector<float> depth_buf[superSample_size];
+        // std::vector<float> depth_buf;
+
         int get_index(int x, int y);
 
         int width, height;

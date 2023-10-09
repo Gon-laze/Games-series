@@ -134,6 +134,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         for (int i = 0; i < 3; ++i)
         {
             t.setVertex(i, v[i].head<3>());
+            // ? So confused. Probably wrong(overdone).
             t.setVertex(i, v[i].head<3>());
             t.setVertex(i, v[i].head<3>());
         }
@@ -172,10 +173,12 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     {
         for (auto _x_ = x_min; _x_ <= x_max; _x_++)
         {
-            for (auto u = 0; u < rst::superSample_size; u++)
+            for (auto u = 0; u < superSample_size; u++)
             {
-                auto x = _x_ + (u % superSample_width) * superSample_Wmeta;
-                auto y = _y_ + (u / superSample_width) * superSample_Wmeta;
+                // use center axis to judge
+                auto x = _x_ + (u % superSample_width) * superSample_Wmeta + superSample_Wmeta / 2.0;
+                auto y = _y_ + (u / superSample_width) * superSample_Wmeta + superSample_Wmeta / 2.0;
+
                 if (insideTriangle(x, y, t.v) == false)
                     continue;
                 //  // std::cout << x << '\t' << y <<'\t' << superSample_level << std::endl;
@@ -205,10 +208,9 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                     depth_buf[u][pIndex] = z_interpolated;
                     
                     // ? Try some color mixing (is this correct?)
-                    set_pixel({floor(x),floor(y),z_interpolated}, frame_buf[pIndex] + t.getColor() * rst::superSample_Smeta);
+                    set_pixel({floor(x),floor(y),z_interpolated}, frame_buf[pIndex] + t.getColor() * (float)superSample_Smeta);
                 }                
             }
-
         }
     }
 }
@@ -261,7 +263,7 @@ void rst::rasterizer::set_pixel(const Eigen::Vector3f& point, const Eigen::Vecto
 {
     //old index: auto ind = point.y() + point.x() * width;
 
-    // add by Gon laze: border detect(frome homework 1)
+    // add by Gon laze: border detect(from homework 1)
     if (point.x() < 0 || point.x() >= width ||
     point.y() < 0 || point.y() >= height) return;
 

@@ -50,6 +50,9 @@ Eigen::Matrix4f get_model_matrix(float angle)
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
 {
     // TODO: Use the same projection matrix from the previous assignments
+    
+    /* 2 step convert: */
+    // 1. perspect -> ortho
     Eigen::Matrix4f projection;
     Eigen::Matrix4f M_persp2ortho;
     M_persp2ortho <<    zNear, 0, 0, 0,
@@ -164,7 +167,8 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
     {
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
-        
+        Eigen::Vector3f la = ka;
+    
     }
 
     return result_color * 255.f;

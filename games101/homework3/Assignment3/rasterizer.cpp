@@ -180,6 +180,8 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
     {
         Triangle newtri = *t;
 
+        // This is used for light calculation(mv without projection because we want origin coords to get origin lights)
+        // note by Gon laze
         std::array<Eigen::Vector4f, 3> mm {
                 (view * model * t->v[0]),
                 (view * model * t->v[1]),
@@ -269,16 +271,48 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
     // float zp = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
     // zp *= Z;
 
+    // same as hw2 --add by Gon laze
+    {
+        auto& v = t.v;
+        float x_min = floor(std::min(std::min(v[0].x(), v[1].x()), v[2].x()));
+        float x_max = floor(std::max(std::max(v[0].x(), v[1].x()), v[2].x()));
+        float y_min = floor(std::min(std::min(v[0].y(), v[1].y()), v[2].y()));
+        float y_max = floor(std::max(std::max(v[0].y(), v[1].y()), v[2].y()));
+        
+        // ! TODO: This bounding box could be so huge! Try other ways to boost.
+        for (auto _x_ = x_min; _x_ <= x_max; _x_++)
+        {
+            for (auto _y_ = y_min; _y_ <= y_max; _y_++)
+            {
+                for (auto u = 0; u < superSample_size; u++)
+                {
+                    auto x = _x_ + (u % superSample_width) * superSample_Wmeta + superSample_Wmeta / 2.0;
+                    auto y = _y_ + (u / superSample_width) * superSample_Wmeta + superSample_Wmeta / 2.0;
+
+                    if (insideTriangle(x, y, v) == false)
+                        continue;
+                    auto[alpha, beta, gamma] = computeBarycentric2D(x, y, v);
+                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    z_interpolated *= w_reciprocal;
+                }                   
+            }
+        }        
+    }
+
     // TODO: Interpolate the attributes:
     // auto interpolated_color
     // auto interpolated_normal
     // auto interpolated_texcoords
     // auto interpolated_shadingcoords
+    
+    // color interpolation
 
     // Use: fragment_shader_payload payload( interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
     // Use: payload.view_pos = interpolated_shadingcoords;
     // Use: Instead of passing the triangle's color directly to the frame buffer, pass the color to the shaders first to get the final color;
     // Use: auto pixel_color = fragment_shader(payload);
+
 
  
 }
@@ -306,14 +340,19 @@ void rst::rasterizer::clear(rst::Buffers buff)
     }
     if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth)
     {
-        std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
+        // edit by Gon laze: superSample: create depthBuf for each sample
+        for (auto & db : depth_buf)
+            std::fill(db.begin(), db.end(), std::numeric_limits<float>::infinity());
+        // std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
     }
 }
 
 rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
 {
     frame_buf.resize(w * h);
-    depth_buf.resize(w * h);
+    for (auto & db : depth_buf)
+        db.resize(w * h);
+    // depth_buf.resize(w * h);
 
     texture = std::nullopt;
 }
