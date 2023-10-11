@@ -290,31 +290,90 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
                     auto y = _y_ + (u / superSample_width) * superSample_Wmeta + superSample_Wmeta / 2.0;
 
                     if (insideTriangle(x, y, v) == false)
-                        continue;
+                        continue;    
+                    /*
+                        more info: https://zhuanlan.zhihu.com/p/448575965  formula(6)
+                        * you may understand why we can think z equals to "1/WEIGHT" 
+                    */
                     auto[alpha, beta, gamma] = computeBarycentric2D(x, y, v);
-                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                    z_interpolated *= w_reciprocal;
-                }                   
+                    // * in this case, w() is the zVal in the model that after m-v transformations(m-v-p without p)
+                    auto z = 1.f /(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                    auto weight = 1.f / z;
+                    
+                    auto[final_alpha, final_beta, final_gamma] = std::tuple<float, float, float>{alpha/v[0].w(), beta/v[1].w(), gamma/v[2].w()};
+                    auto z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    z_interpolated *= z;
+
+                    // ? MISTAKE detected! is z_interpolated a negative val?
+                    // add by Gon laze
+                    // z_interpolated = -z_interpolated;
+
+                    // TODO: Interpolate the attributes:
+                    // auto interpolated_color
+                    // auto interpolated_normal
+                    // auto interpolated_texcoords
+                    // auto interpolated_shadingcoords
+                    
+                    // color interpolation
+                    auto interpolated_color = interpolate(
+                        final_alpha, 
+                        final_beta, 
+                        final_gamma, 
+                        t.color[0],
+                        t.color[1],
+                        t.color[2],
+                        weight
+                    );
+                    // ? normalVec interpolation (should normalize first?)
+                    auto interpolated_normal = interpolate(
+                        final_alpha, 
+                        final_beta, 
+                        final_gamma, 
+                        t.normal[0],
+                        t.normal[1],
+                        t.normal[2],
+                        weight
+                    );
+                    // tex_coords interpolation(2D coords with u-v)
+                    auto interpolated_texcoords = interpolate(
+                        final_alpha, 
+                        final_beta, 
+                        final_gamma,
+                        t.tex_coords[0],
+                        t.tex_coords[1],
+                        t.tex_coords[2],
+                        weight
+                    );
+
+                    // origin model coords interpolation for shading(after m-v)
+                    auto interpolated_shadingcoords = interpolate(
+                        final_alpha,
+                        final_beta,
+                        final_gamma,
+                        view_pos[0],
+                        view_pos[1],
+                        view_pos[2],
+                        weight
+                    );
+                    // TODO: learn more about c++ optional
+                    // maybe this(&*texture) only wants to covert optional to ptr...
+                    fragment_shader_payload payload(interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
+                    payload.view_pos = interpolated_shadingcoords;
+                    // Use: Instead of passing the triangle's color directly to the frame buffer, pass the color to the shaders first to get the final color;
+                    auto pixel_color = fragment_shader(payload);
+                    
+                    auto pIndex = rst::rasterizer::get_index(x, y);   
+                    if (depth_buf[u][pIndex] > z_interpolated)
+                    {
+                        depth_buf[u][pIndex] = z_interpolated;
+                        // ! TODO: this method(color mixture) works well in hw2(almost 2D) but FAILED IN THIS TIME. WHY??????
+                        // set_pixel({x, y}, frame_buf[pIndex] + pixel_color * (float)superSample_Smeta);
+                        set_pixel({x, y}, pixel_color * (float)superSample_Smeta);
+                    }   
+                }                 
             }
         }        
     }
-
-    // TODO: Interpolate the attributes:
-    // auto interpolated_color
-    // auto interpolated_normal
-    // auto interpolated_texcoords
-    // auto interpolated_shadingcoords
-    
-    // color interpolation
-
-    // Use: fragment_shader_payload payload( interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
-    // Use: payload.view_pos = interpolated_shadingcoords;
-    // Use: Instead of passing the triangle's color directly to the frame buffer, pass the color to the shaders first to get the final color;
-    // Use: auto pixel_color = fragment_shader(payload);
-
-
- 
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)

@@ -118,6 +118,7 @@ namespace rst
 
         // edit by Gon laze: superSample: create depthBuf for each sample
         std::vector<float> depth_buf[superSample_size];
+        std::vector<Eigen::Vector3f> colorMeta_buf[superSample_size];
         // std::vector<float> depth_buf;
 
         int get_index(int x, int y);

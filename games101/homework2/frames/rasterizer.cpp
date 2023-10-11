@@ -173,6 +173,11 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     {
         for (auto _x_ = x_min; _x_ <= x_max; _x_++)
         {
+            float w_reciprocal;
+            float z_interpolated;
+            auto final_color = Eigen::Vector3f{0, 0, 0};
+            auto pIndex = rst::rasterizer::get_index(_x_, _y_);
+
             for (auto u = 0; u < superSample_size; u++)
             {
                 // use center axis to judge
@@ -180,7 +185,11 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                 auto y = _y_ + (u / superSample_width) * superSample_Wmeta + superSample_Wmeta / 2.0;
 
                 if (insideTriangle(x, y, t.v) == false)
-                    continue;
+                {
+                    final_color += frame_buf[pIndex] * (float)superSample_Smeta;
+                    continue;                    
+                }
+
                 //  // std::cout << x << '\t' << y <<'\t' << superSample_level << std::endl;
                 // ! TODO: This bounding box could be so huge! Try other ways to boost.
                 
@@ -197,20 +206,25 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                     TODO: try to comprehend.
                     TODO: try to simplifed this.
                 */
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                 z_interpolated *= w_reciprocal;
 
                 // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-                auto pIndex = rst::rasterizer::get_index(x, y);
                 if (depth_buf[u][pIndex] > z_interpolated)
                 {
-                    depth_buf[u][pIndex] = z_interpolated;
-                    
+                    depth_buf[u][pIndex] = z_interpolated;            
                     // ? Try some color mixing (is this correct?)
-                    set_pixel({floor(x),floor(y),z_interpolated}, frame_buf[pIndex] + t.getColor() * (float)superSample_Smeta);
-                }                
+                    // 2023.10.11 The truth is absolutely WRONG! try another way!
+                    // // set_pixel({floor(x),floor(y),z_interpolated}, frame_buf[pIndex] + t.getColor() * (float)superSample_Smeta);
+                    colorMeta_buf[u][pIndex] = t.getColor() * (float)superSample_Smeta;       
+                }
+                final_color += colorMeta_buf[u][pIndex];         
             }
+            set_pixel({_x_, _y_, z_interpolated}, final_color);
+
+            // ? wonder if this work: set_pixel({_x_, _y_, z_interpolated}, (1.f-k)*frame_buf[pIndex] + k*t.get_color()), where k = renewTimes * superSample_Smeta
+            // TODO: this seems not a exact result, but how it will works(autually it doesn't need colorMetabuf)? Try it!
         }
     }
 }
@@ -235,6 +249,9 @@ void rst::rasterizer::clear(rst::Buffers buff)
     if ((buff & rst::Buffers::Color) == rst::Buffers::Color)
     {
         std::fill(frame_buf.begin(), frame_buf.end(), Eigen::Vector3f{0, 0, 0});
+        // edit by Gon laze: superSample: create dcolorBuf for each sample
+        for (auto & cmb : colorMeta_buf)
+            std::fill(cmb.begin(), cmb.end(), Eigen::Vector3f{0, 0, 0});
     }
     if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth)
     {
@@ -251,6 +268,8 @@ rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
     // edit by Gon laze: superSample: create depthBuf for each sample
     for (auto & db : depth_buf)
         db.resize(w * h);
+    for (auto & cmb : colorMeta_buf)
+        cmb.resize(w * h);
     // depth_buf.resize(w * h);
 }
 

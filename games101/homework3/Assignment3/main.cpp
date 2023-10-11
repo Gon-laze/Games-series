@@ -58,7 +58,8 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
     M_persp2ortho <<    zNear, 0, 0, 0,
                         0, zNear, 0, 0,
                         0, 0, zNear+zFar, -(zNear*zFar),
-                        0, 0, 1, 0;
+                        // -1 for z should be a negative value
+                        0, 0, -1, 0;
 
     // 2. ortho ->(Translate & scale) final
     float Space_height = 2 * zNear * tan(eye_fov/2);
@@ -167,10 +168,26 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
     {
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
-        Eigen::Vector3f la = ka;
-    
-    }
+        
+        // ! TODO: light direction ERROR
+        auto r = light.position - point;
+        auto r_quad = r.dot(r);
+        auto n = normal.normalized();
+        auto l = (eye_pos - point).normalized();
+        auto h = (n+l).normalized();
 
+        // ? Is this correct? ('*' means dot product or element product?)
+        // seems not. use diagonal Matrix to replace.
+        // ? should calculate ambient for each light?
+        Eigen::Vector3f la = Eigen::Matrix3f{ka.asDiagonal()} * amb_light_intensity;
+        Eigen::Vector3f ld = Eigen::Matrix3f{kd.asDiagonal()} * (light.intensity / r_quad) * std::max(0.f, n.dot(l));
+        Eigen::Vector3f ls = Eigen::Matrix3f{ks.asDiagonal()} * (light.intensity / r_quad) * pow(std::max(0.f, n.dot(h)), p);
+
+        result_color += (la + ld + ls);
+    }
+    // add by Gon laze
+    // result_color /= 255.f;
+    
     return result_color * 255.f;
 }
 
