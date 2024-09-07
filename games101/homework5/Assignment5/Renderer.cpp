@@ -228,9 +228,28 @@ void Renderer::Render(const Scene& scene)
             // TODO: Find the x and y positions of the current pixel to get the direction
             // vector that passes through it.
             // Also, don't forget to multiply both of them with the variable *scale*, and
-            // x (horizontal) variable with the *imageAspectRatio*            
+            // x (horizontal) variable with the *imageAspectRatio* 
+
+            /*
+                logic chain:
+                    float z_distance =  (scene.height / 2.0) / scale;
+                    x = (i-scene.width/2.0) / z_distance;
+                    y = (j-scene.height/2.0) / z_distance;
+
+                    x = (i-scene.width/2.0) * 2.0 * scale / scene.height;
+                    x = (i-scene.width/2.0) * 2.0 * scale * imageAspectRatio / scene.width;
+                    
+                    y = (j-scene.height/2.0) * 2.0 * scale / scene.height;
+
+                    *P.S.       mul -1.0 for neg_z
+                    *           0.5 for center pixel calibration
+            */
+            x = (2.0*(i+0.5) / scene.width - 1) * scale * imageAspectRatio;
+            y = (2.0*(j+0.5) / scene.height - 1) * scale * (-1.0);
+
 
             Vector3f dir = Vector3f(x, y, -1); // Don't forget to normalize this direction!
+            dir = normalize(dir);
             framebuffer[m++] = castRay(eye_pos, dir, scene, 0);
         }
         UpdateProgress(j / (float)scene.height);

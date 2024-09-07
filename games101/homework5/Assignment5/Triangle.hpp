@@ -11,6 +11,28 @@ bool rayTriangleIntersect(const Vector3f& v0, const Vector3f& v1, const Vector3f
     // that's specified bt v0, v1 and v2 intersects with the ray (whose
     // origin is *orig* and direction is *dir*)
     // Also don't forget to update tnear, u and v.
+
+    // *SOLVE: orig + tNear*dir = (1-b1-b2)*v0 + b1*v1 + b2*v2;
+    // *using Moller-Trumbore
+    Vector3f E1 = v1 - v0;
+    Vector3f E2 = v2 - v0;
+    Vector3f S = orig - v0;
+    Vector3f S1 = crossProduct(dir, E2);
+    Vector3f S2 = crossProduct(S, E1);
+
+    auto divNum = dotProduct(S1, E1);
+
+    // uv for texture mapping(see lecture 9)
+    // u = E1, v = E2
+    // (1-b1-b2)*v0 + b1*v1 + b2*v2 = v0 + u*(v1-v0) + v*(v2-v0)
+    // --> u=b1  v=b2
+
+    tnear = dotProduct(S2, E2) / divNum;
+    u = dotProduct(S1, S) / divNum;
+    v = dotProduct(S2, dir) / divNum;
+
+    if (tnear>0 && (1.0-u-v)>=0 && u>=0 && v>=0)
+        return true;
     return false;
 }
 
