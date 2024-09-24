@@ -233,8 +233,10 @@ inline Intersection Triangle::getIntersection(Ray ray)
 {
     Intersection inter;
 
+    // ? should we only consider one side?
     if (dotProduct(ray.direction, normal) > 0)
         return inter;
+        
     double u, v, t_tmp = 0;
     Vector3f pvec = crossProduct(ray.direction, e2);
     double det = dotProduct(e1, pvec);

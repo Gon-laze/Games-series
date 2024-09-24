@@ -109,15 +109,19 @@ inline bool Bounds3::IntersectP(const Ray& ray, const Vector3f& invDir,
     Vector3f DisWithDir_Max = distance_Min + distance_Max - DisWithDir_Min;
     
     Vector3f t_enter_vec = DisWithDir_Min * invDir;
-    Vector3f t_exit_vec = DisWithDir_Min * invDir;
-
-    float t_enter = t_enter_vec.x < t_enter_vec.y ? t_enter_vec.x : t_enter_vec.y;
-    t_enter = t_enter < t_enter_vec.z ? t_enter : t_enter_vec.z;
-
-    float t_exit = t_exit_vec.x > t_exit_vec.y ? t_exit_vec.x : t_exit_vec.y;
-    t_exit = t_exit > t_exit_vec.z ? t_exit : t_exit_vec.z;
+    // ! terrible mistake (wtf)
+    // Vector3f t_exit_vec = DisWithDir_Min * invDir;
+    Vector3f t_exit_vec = DisWithDir_Max * invDir;
     
-    return (t_enter<t_exit && t_exit>=0);
+
+    float t_enter = t_enter_vec.x > t_enter_vec.y ? t_enter_vec.x : t_enter_vec.y;
+    t_enter = t_enter > t_enter_vec.z ? t_enter : t_enter_vec.z;
+
+    float t_exit = t_exit_vec.x < t_exit_vec.y ? t_exit_vec.x : t_exit_vec.y;
+    t_exit = t_exit < t_exit_vec.z ? t_exit : t_exit_vec.z;
+    
+    // ! must consider 't_enter == t_exit': object can be a align-axis-plane
+    return (t_enter<=t_exit && t_exit>=0);
 }
 
 inline Bounds3 Union(const Bounds3& b1, const Bounds3& b2)
