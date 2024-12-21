@@ -56,8 +56,15 @@ function GAMES202Main() {
 	let obj1Transform = setTransform(0, 0, 0, 20, 20, 20);
 	let obj2Transform = setTransform(40, 0, -40, 10, 10, 10);
 
+	// add by Gon laze: a new model!
+	// source from : https://free3d.com/3d-model/wolf-rigged-and-game-ready-42808.html
+	let objWolfTransform = setTransform(-40, 0, 0, 20, 20, 20);
+	let objBoxTransform = setTransform(40, 0, -40, 10, 10, 10);
+
 	loadOBJ(renderer, 'assets/mary/', 'Marry', 'PhongMaterial', obj1Transform);
-	loadOBJ(renderer, 'assets/mary/', 'Marry', 'PhongMaterial', obj2Transform);
+	// loadOBJ(renderer, 'assets/mary/', 'Marry', 'PhongMaterial', obj2Transform);
+	loadOBJ(renderer, 'assets/wolf/', 'Wolf_One_obj', 'PhongMaterial', objWolfTransform);
+	loadOBJ(renderer, 'assets/testObj/', 'testObj', 'PhongMaterial', objBoxTransform);
 	loadOBJ(renderer, 'assets/floor/', 'floor', 'PhongMaterial', floorTransform);
 	
 
