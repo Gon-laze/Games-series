@@ -34,7 +34,7 @@ class DirectionalLight {
         // * too large => seriously self-hidden
         // * too small => shadow missing  
         // ? why is 500 in zAixs (not -500?)
-        mat4.ortho(projectionMatrix, -100, 100, -100, 100, 0, 500);
+        mat4.ortho(projectionMatrix, -100, 100, -100, 100, 0, 600);
         // mat4.ortho(projectionMatrix, this.lightPos[0]-120, this.lightPos[0]+120, this.lightPos[1]-120, this.lightPos[1]+120, 0, this.lightPos[2]+500);
         // console.log("lightPos ==> " + String(this.lightPos));
         mat4.multiply(lightMVP, projectionMatrix, viewMatrix);

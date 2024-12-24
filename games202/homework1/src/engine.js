@@ -50,6 +50,13 @@ function GAMES202Main() {
 	const directionLight = new DirectionalLight(5000, [1, 1, 1], lightPos, focalPoint, lightUp, true, renderer.gl);
 	renderer.addLight(directionLight);
 
+	// * add by Gon laze: how about 2 lights?
+	// let lightPos2 = [-100,150, 80];
+	// let focalPoint2 = [0, 0, 0];
+	// let lightUp2 = [0, 1, 0]
+	// const directionLight2 = new DirectionalLight(5000, [1, 1, 1], lightPos2, focalPoint2, lightUp2, true, renderer.gl);
+	// renderer.addLight(directionLight2);
+
 	// Add shapes
 	
 	let floorTransform = setTransform(0, 0, -30, 4, 4, 4);
@@ -61,7 +68,7 @@ function GAMES202Main() {
 	let objWolfTransform = setTransform(-40, 0, 0, 20, 20, 20);
 	let objBoxTransform = setTransform(40, 0, -40, 10, 10, 10);
 
-	loadOBJ(renderer, 'assets/mary/', 'Marry', 'PhongMaterial', obj1Transform);
+	// loadOBJ(renderer, 'assets/mary/', 'Marry', 'PhongMaterial', obj1Transform);
 	// loadOBJ(renderer, 'assets/mary/', 'Marry', 'PhongMaterial', obj2Transform);
 	loadOBJ(renderer, 'assets/wolf/', 'Wolf_One_obj', 'PhongMaterial', objWolfTransform);
 	loadOBJ(renderer, 'assets/testObj/', 'testObj', 'PhongMaterial', objBoxTransform);
